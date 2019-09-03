@@ -1,4 +1,4 @@
-# edux 基础用法
+# Redux 基础用法
 
 该文档是根据[Redux 中文文档](https://www.redux.org.cn/docs/advanced/Middleware.html)写出。
 
@@ -221,4 +221,101 @@ connect(mapStateToProps, mapDispatchToProps)(组件)
 
 5. 
 
+## 异步 Action
 
+1. 在之前，我们只能使用同步 `action` ，而当我们需要使用到请求等异步操作时，就需要使用 `redux-thunk` 作为中间件，这样 `redux` 就能允许我们是使用异步 `action` 了。
+
+2. `thunk` 是
+
+   1. 阮一峰：将多参数函数转换成单参数函数，单参数函数只能接受回调函数作为参数。
+   2. `redux-thunk` 作者：将立即执行的代码转换成延迟执行。
+
+3. 之前，`action` 创建函数只能返回对象。使用了 `redux-thunk` 之后，我们也能返回函数了。
+
+   1. `redux-thunk` 中间件会拦截 `action` 创建函数，并立即执行返回的函数，同时传入 `dispatch、getState` 两个方法作为参数。
+   2. 返回的函数内可以返回一个 `Promise` ，这样在立即执行后，就会得到一个 `Promise` 。我们在触发 `action` 之后还可以继续`.then()`，即 `store.dispatch(...).then()`
+   3. 可以规定 `thunk` 接受的第三个参数：`thunk.withExtraArgument()`
+
+   ```js
+   const store = createStore(
+     reducer,
+     applyMiddleware(thunk.withExtraArgument({ api, whatever })),
+   );
+   
+   // later
+   function fetchUser(id) {
+     return (dispatch, getState, { api, whatever }) => {
+       // you can use api and something else here
+     };
+   }
+   ```
+
+4. 使用 `redux-promise-middleware` 来 `dispatch Promise` 来替代函数
+
+   1. `applyMiddleware('thunk','reduxPromise')`
+
+   2. 该插件用于将返回的 `Promise` 转换成 `Promise.pendding` `Promise.resolve` `Promise.reject` ，其中 `Promise.pendding` 会被立即执行，其余将会在对应时机触发。而且会有对应的 `actionType` ，分别为 `ACTIONTYPE_FULFILLED` 和 `ACTIONTYPE_REJECT`
+
+   3. 将触发的 `Promise` 作为 `action` 的 `payload` 属性值。即
+
+      ```js
+      const foo = () => ({
+        type: 'FOO',
+        payload: new Promise()
+      });
+      ```
+
+      同时
+
+      ```js
+      {
+        type: 'FOO_PENDING'
+      }
+      
+      {
+        type: 'FOO_FULFILLED'
+        payload: {
+          ...
+        }
+      }
+      
+      {
+        type: 'FOO_REJECTED'
+        error: true,
+        payload: {
+          ...
+        }
+      }
+      ```
+
+      
+
+## 优化
+
+1. 我们在使用 `action` 和 `reducer` 时，会明显地感到麻烦。使用 `redux-actions` 来简化 
+
+   1. 使用 `createActions` 来简化 `action` 创建函数
+
+   ```js
+   import {createActions} from 'redux-actions'
+   
+   const {increment} = createActions({
+     INCREMENT: (amount = 1) => {}
+   })
+   ```
+
+   2. 使用 `handleActions` 来简化 `reducer` 
+
+   ```js
+   import {handleActions} from 'redux-actions'
+   import {increment} from './actions'
+   
+   const reducer = handleActions({
+     [increment]: (state: any, action: any) => {},
+     defaultState
+   })
+   ```
+
+   
+
+   2. 
